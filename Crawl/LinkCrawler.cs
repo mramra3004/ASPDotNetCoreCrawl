@@ -3,11 +3,13 @@ using LinkCrawler.Utils.Helpers;
 using LinkCrawler.Utils.Outputs;
 using LinkCrawler.Utils.Parsers;
 using LinkCrawler.Utils.Settings;
+using ReadSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -37,6 +39,8 @@ namespace LinkCrawler
         private ISettings _settings;
         private Stopwatch timer;
         private HttpClient _httpClient;
+
+        private Dictionary<string,int> wordCounts = new Dictionary<string,int>(StringComparer.CurrentCultureIgnoreCase);
 
         public bool CancelSignalReceived=false;
 
@@ -114,17 +118,28 @@ namespace LinkCrawler
                 pendingUrls=UrlList.Where(l => l.CheckingFinished == false || l.StatusCode==REQUEST_IN_PROGRESS_STATUS_CODE).Count();
                 totalUrls=UrlList.Count;
             }
+            var top30Words="";
+            lock(wordCounts)
+            {
+                var list=(from entry in wordCounts where entry.Key.ToString().Length>3 orderby entry.Value descending select entry)
+                        .Take(30)
+                        .ToList();
+                foreach (var ent in list)
+                {
+                    top30Words+=Environment.NewLine+ent.Key+":"+ent.Value.ToString();
+                }
+            }
             try 
             {
                 HttpResponseMessage response=requestTask.Result;
                 if (response == null) return;
-                var responseModel = new ResponseModel(response,rm, _settings,"",totalUrls-pendingUrls,totalUrls,(int)this.timer.Elapsed.TotalSeconds);
+                var responseModel = new ResponseModel(response,rm, _settings,"",totalUrls-pendingUrls,totalUrls,(int)this.timer.Elapsed.TotalSeconds,top30Words);
                 ProcessResponse(responseModel);
             }
             catch(Exception ex) {
                 Console.WriteLine(ex.InnerException.Message+" for " + rm.Url);
                 HttpResponseMessage response = new HttpResponseMessage(0);
-                var responseModel = new ResponseModel(response,rm, _settings,ex.InnerException.Message,totalUrls-pendingUrls,pendingUrls,(int)this.timer.Elapsed.TotalSeconds);
+                var responseModel = new ResponseModel(response,rm, _settings,ex.InnerException.Message,totalUrls-pendingUrls,pendingUrls,(int)this.timer.Elapsed.TotalSeconds,top30Words);
                 ProcessResponse(responseModel);
             }
         }
@@ -140,6 +155,12 @@ namespace LinkCrawler
         {
             var linksFoundInMarkup = MarkupHelpers.GetValidUrlListFromMarkup(responseModel.Markup, ValidUrlParser, CheckImages);
 
+            lock(wordCounts)
+            {
+                AddWordsToCount(responseModel.Markup);
+
+;
+            }
             foreach (var url in linksFoundInMarkup)
             {
                 lock (UrlList)
@@ -151,6 +172,21 @@ namespace LinkCrawler
                     UrlList.Add(new LinkModel(url,responseModel.RequestedUrl));
                 }
 
+            }
+        }
+
+        private void AddWordsToCount(string markup)
+        {
+            var plainText = HtmlUtilities.ConvertToPlainText(markup);
+            var wordPattern = new Regex(@"\w+");
+
+            foreach (Match match in wordPattern.Matches(plainText))
+            {
+                int currentCount=0;
+                wordCounts.TryGetValue(match.Value, out currentCount);
+
+                currentCount++;
+                wordCounts[match.Value] = currentCount;
             }
         }
 

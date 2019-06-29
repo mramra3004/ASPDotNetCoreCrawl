@@ -22,7 +22,9 @@ namespace LinkCrawler.Models
         public int TotalUrls { get; private set; }
         public int ElapsedSec { get; private set; }
 
-        public ResponseModel(HttpResponseMessage restResponse, RequestModel requestModel, ISettings settings, string exceptionText, int processedUrls, int totalUrls,int elapsedSec)
+        public string TopXWords { get ; private set; }
+
+        public ResponseModel(HttpResponseMessage restResponse, RequestModel requestModel, ISettings settings, string exceptionText, int processedUrls, int totalUrls,int elapsedSec, string topXwords)
         {
             ReferrerUrl = requestModel.ReferrerUrl;
             StatusCode = restResponse.StatusCode;
@@ -32,6 +34,7 @@ namespace LinkCrawler.Models
             ProcessedUrls=processedUrls;
             TotalUrls=totalUrls;
             ElapsedSec=elapsedSec;
+            TopXWords= topXwords;
 
             if (!IsSuccess)
             {
@@ -47,8 +50,8 @@ namespace LinkCrawler.Models
                 return string.Format("{0}\t{1}\t{2}{3}\t{5}\tReferer:\t{4}", 
                     StatusCodeNumber, StatusCode, RequestedUrl, Environment.NewLine, ReferrerUrl,ExceptionText);
 
-            return string.Format("{0}\t{1}\t{2} Referer:\t{3}{4}Processed {5} of {6} URLs in {7} sec", 
-                StatusCodeNumber, StatusCode, RequestedUrl,ReferrerUrl,Environment.NewLine,ProcessedUrls.ToString(),TotalUrls.ToString(),ElapsedSec.ToString());
+            return string.Format("{0}\t{1}\t{2} Referer:\t{3}{4}Processed {5} of {6} URLs in {7} sec {8}", 
+                StatusCodeNumber, StatusCode, RequestedUrl,ReferrerUrl,Environment.NewLine,ProcessedUrls.ToString(),TotalUrls.ToString(),ElapsedSec.ToString(),TopXWords);
                 
         }
     }
