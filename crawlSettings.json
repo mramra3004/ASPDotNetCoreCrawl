@@ -1,0 +1,11 @@
+{
+  "OnlyReportBrokenLinksToOutput" : "false" ,
+  "CheckImages" :"true" ,
+  "SuccessHttpStatusCodes" :"1xx,2xx,3xx" ,
+  "ValidUrlRegex" :"(^http[s]?:\/{2})|(^www)|(^\/{1,2})" ,
+  "PrintSummary" :"true" ,
+  "Csv.FilePath" :"./output.csv" ,
+  "Csv.Overwrite" :"true" ,
+  "Csv.Delimiter" :";" ,
+  "TimeMsBetweenRequests":"250"
+}

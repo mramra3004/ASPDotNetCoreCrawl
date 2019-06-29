@@ -1,0 +1,32 @@
+@model IndexViewModel
+@{
+    ViewData["Title"] = "Home Page";
+}
+<div class="text-center">
+<form id="CrawlForm" method="post" onsubmit="getElementById('stopButton').style.display = 'inline'; getElementById('crawlButton').style.display = 'none'; return sendStartMsg(document.getElementById('siteToCrawl').value)">
+    <div>
+        <label name="sitename" class="label-default">Please input name of the site to crawl</label>
+        <input type="text" value="http://www." asp-for="CrawlURL" class="form-control" id="siteToCrawl" aria-describedby="siteCrawlHelp" placeholder="http://www.">
+        <small id="emailHelp" class="form-text text-muted">Please allow for some time for crawling...</small>
+    </div>
+    <div>
+    <input type="button" id="crawlButton" class="my-button" value="Crawl" 
+        onclick="getElementById('stopButton').style.display = 'inline'; getElementById('crawlButton').style.display = 'none'; sendStartMsg(document.getElementById('siteToCrawl').value)">
+    
+    <input type="button" id="stopButton" class="my-button" value="Stop" style="background-color:red;display:none"
+        onclick="getElementById('stopButton').style.display = 'none'; getElementById('crawlButton').style.display = 'inline'; sendStopMsg()">
+    </div>
+
+    <label id="CurrentlyProcessedUrl"></label>
+    <ul id="FailedUrls" class="list-group">
+    </ul>
+
+    @if (!string.IsNullOrEmpty(Model?.CrawlURL))
+    { 
+        <label id="UrlBeingCrawled" >@Model.CurrentUrlBeingCrawled</label>
+    }
+</form>
+
+</div>
+<script src="~/lib/signalr/dist/browser/signalr.js"></script>
+<script src="~/js/signalRReceive.js"></script>
