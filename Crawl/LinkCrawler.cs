@@ -47,7 +47,8 @@ namespace LinkCrawler
         public LinkCrawler(IEnumerable<IOutput> outputs, IValidUrlParser validUrlParser, ISettings settings)
         {
             _httpClient=new HttpClient();
-            _httpClient.DefaultRequestHeaders.Add("User-Agent","Mozilla/5.0");
+            _httpClient.DefaultRequestHeaders.Add("User-Agent","curl/7.54.0");
+            _httpClient.DefaultRequestHeaders.Add("Accept","*/*");
             msSleepBetweenRequests=settings.TimeMsBetweenRequests;
 
             Outputs = outputs;
@@ -73,7 +74,7 @@ namespace LinkCrawler
                 {
 
                     pendingUrls=UrlList.Where(l => l.CheckingFinished == false || l.StatusCode==REQUEST_IN_PROGRESS_STATUS_CODE).ToList();
-                    if ((UrlList.Count > 1) && (pendingUrls.Count() == 0)) break;
+                    if ((UrlList.Count >= 1) && (pendingUrls.Count() == 0)) break;
                     if (CancelSignalReceived) break;
                 }
 
@@ -244,10 +245,25 @@ namespace LinkCrawler
                     messages.Add(String.Format("   {0}  | {1,5}", statusGroup.Key, statusGroup.Count()));
                 }
 
+                var top30Words="";
+                lock(wordCounts)
+                {
+                    var list=(from entry in wordCounts where entry.Key.ToString().Length>3 orderby entry.Value descending select entry)
+                            .Take(30)
+                            .ToList();
+                    foreach (var ent in list)
+                    {
+                        top30Words+=Environment.NewLine+ent.Key+":"+ent.Value.ToString();
+                    }
+                }
+                messages.Add("--------Top words-----------");
+                messages.Add(top30Words);
+                
                 foreach (var output in Outputs)
                 {
                     output.WriteSummary(messages.ToArray());
                 }
+
             }
         }
     }

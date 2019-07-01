@@ -24,6 +24,7 @@
         public static class Response
         {
             public const string ContentTypeTextHtml = "text/html";
+            public const string ContentTypeTextText = "text/plain";
         }
 
         public static class Html

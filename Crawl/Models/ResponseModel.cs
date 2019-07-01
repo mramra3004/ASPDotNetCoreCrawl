@@ -41,7 +41,7 @@ namespace LinkCrawler.Models
                 return;
             }
             Markup = System.Text.Encoding.UTF8.GetString(restResponse.Content.ReadAsByteArrayAsync().Result);
-            ShouldCrawl = IsSuccess && requestModel.IsInternalUrl && restResponse.IsHtmlDocument();
+            ShouldCrawl = IsSuccess && requestModel.IsInternalUrl && (restResponse.IsHtmlDocument() || restResponse.IsTextDocument());
         }
 
         public override string ToString()

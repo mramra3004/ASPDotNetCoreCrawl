@@ -10,5 +10,9 @@ namespace LinkCrawler.Utils.Extensions
             return restResponse.Content.Headers.ContentType.ToString().StartsWith(Constants.Response.ContentTypeTextHtml);
         }
          
+        public static bool IsTextDocument(this HttpResponseMessage restResponse)
+        {
+            return restResponse.Content.Headers.ContentType.ToString().StartsWith(Constants.Response.ContentTypeTextText);
+        }
     }
 }
