@@ -1,5 +1,6 @@
 # ASPDotNetCoreCrawl
 Web based crawler for site broken links based on https://github.com/hmol/LinkCrawler
+Besides the crawl, this displays also the words with the highest frequency on the site
 
 The technology is Microsoft ASP.NET Core 3 with SignalR for communication between browser and local webserver
 
@@ -34,6 +35,9 @@ Key     				       | Usage           					   |
 | ```Csv.Delimiter```   			  | Delimiter between columns in the CSV file (like ',' or ';')  	       |
 | ```PrintSummary```   			  | If true, a summary will be printed when all links have been checked.  	       |
 | ```TimeMsBetweenRequests```   			  | How long in miliseconds the app should wait until the next request to the crawled site	       |
+| ```TopWordsCount```   			  | How many top words count should be displayed; default 20	       |
+| ```RemoveStopWords```   			  | Whether to ignore stop words from the top words (default = true)	       |
+| ```languageStopWords```   			  | List of site extensions along with the name of the stopwords file	       |
 ## Basic workflow
 
 Once the browser connects to the local webserver, the root URL should be input (full URL, including http(s)) then click enter or press crawl
