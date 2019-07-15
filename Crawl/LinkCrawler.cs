@@ -7,6 +7,7 @@ using ReadSharp;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
@@ -31,7 +32,9 @@ namespace LinkCrawler
     {        
         private int msSleepBetweenRequests;
         private const int REQUEST_IN_PROGRESS_STATUS_CODE = 999;
-        public bool CheckImages { get; set; }
+        private const int MillisecondsTimeoutIfFirstRequest = 2000;
+        private const int MINLETTERSINWORD = 3;
+
         public IEnumerable<IOutput> Outputs { get; set; }
         public IValidUrlParser ValidUrlParser { get; set; }
         public bool OnlyReportBrokenLinksToOutput { get; set; }
@@ -44,6 +47,8 @@ namespace LinkCrawler
 
         public bool CancelSignalReceived=false;
 
+        public SortedList<string,string> stopWordsList;
+
         public LinkCrawler(IEnumerable<IOutput> outputs, IValidUrlParser validUrlParser, ISettings settings)
         {
             _httpClient=new HttpClient();
@@ -53,11 +58,58 @@ namespace LinkCrawler
 
             Outputs = outputs;
             ValidUrlParser = validUrlParser;
-            CheckImages = settings.CheckImages;
             UrlList = new HashSet<LinkModel>(new LinkListComparer()); //to have only unique addresses in the list
             OnlyReportBrokenLinksToOutput = settings.OnlyReportBrokenLinksToOutput;
             _settings = settings;
             this.timer = new Stopwatch();
+            stopWordsList=ReadStopWords();
+        }
+
+        private SortedList<string, string> ReadStopWords()
+        {
+            SortedList<string,string> stopw=new SortedList<string,string>();
+            if (_settings.RemoveStopWords)
+            {
+                string baseUrlDomainExtension=GetBaseUrlDomainExtension();
+
+                string stopWordsFilePath=null;;
+                try 
+                {
+                    stopWordsFilePath=_settings.LanguageStopWords[baseUrlDomainExtension];
+                }
+                catch {}; //in case dictionary key does not exist
+                if (stopWordsFilePath==null)
+                {
+                    stopWordsFilePath=_settings.LanguageStopWords["*"];
+                    if (stopWordsFilePath==null) return stopw;
+                }
+                
+                string stopwordsFullPath = Path.GetFullPath(Path.Combine(stopWordsFilePath)); // get absolute path
+                if (stopwordsFullPath==null) throw new FileNotFoundException("Did not find stop words file "+stopWordsFilePath+" file!");
+                var lines = File.ReadLines(stopwordsFullPath);
+                foreach (var line in lines)
+                {
+                    stopw.Add(line,line);
+                }
+            }
+            return stopw;
+        }
+
+        private string GetBaseUrlDomainExtension()
+        {
+            string url;
+            lock(UrlList)
+            {
+                url=_settings.BaseUrl;
+            }
+
+            Uri uri = new Uri(url);
+            var hostBreakdown = uri.Host.Split(".");
+            if (hostBreakdown.Count()>0)
+                return "."+hostBreakdown[hostBreakdown.Count()-1];
+            else 
+                return "";
+            
         }
 
         public void Start()
@@ -74,8 +126,6 @@ namespace LinkCrawler
                 {
 
                     pendingUrls=UrlList.Where(l => l.CheckingFinished == false || l.StatusCode==REQUEST_IN_PROGRESS_STATUS_CODE).ToList();
-                    if ((UrlList.Count >= 1) && (pendingUrls.Count() == 0)) break;
-                    if (CancelSignalReceived) break;
                 }
 
                 foreach (var linkModel in pendingUrls)
@@ -87,6 +137,15 @@ namespace LinkCrawler
                         Thread.Sleep(msSleepBetweenRequests); 
                         Task.Run(()=> SendRequest(linkModel.Address,linkModel.Referrer));
                     }
+                }
+
+                if (UrlList.Count == 1) Thread.Sleep(MillisecondsTimeoutIfFirstRequest);
+                lock (UrlList)
+                {
+
+                    pendingUrls=UrlList.Where(l => l.CheckingFinished == false || l.StatusCode==REQUEST_IN_PROGRESS_STATUS_CODE).ToList();
+                    if (pendingUrls.Count() == 0) break;
+                    if (CancelSignalReceived) break;
                 }
             }
 
@@ -112,38 +171,54 @@ namespace LinkCrawler
 
         private void ReadResponse(Task<HttpResponseMessage> requestTask, RequestModel rm)
         {
-            int pendingUrls=0;
-            int totalUrls=0;
-            lock(UrlList)
+            int pendingUrls = 0;
+            int totalUrls = 0;
+            lock (UrlList)
             {
-                pendingUrls=UrlList.Where(l => l.CheckingFinished == false || l.StatusCode==REQUEST_IN_PROGRESS_STATUS_CODE).Count();
-                totalUrls=UrlList.Count;
+                pendingUrls = UrlList.Where(l => l.CheckingFinished == false || l.StatusCode == REQUEST_IN_PROGRESS_STATUS_CODE).Count();
+                totalUrls = UrlList.Count;
             }
-            var top30Words="";
-            lock(wordCounts)
+            string topXWords = ReadTopXWords();
+
+
+            try
             {
-                var list=(from entry in wordCounts where entry.Key.ToString().Length>3 orderby entry.Value descending select entry)
-                        .Take(30)
-                        .ToList();
-                foreach (var ent in list)
-                {
-                    top30Words+=Environment.NewLine+ent.Key+":"+ent.Value.ToString();
-                }
-            }
-            try 
-            {
-                HttpResponseMessage response=requestTask.Result;
+                HttpResponseMessage response = requestTask.Result;
                 if (response == null) return;
-                var responseModel = new ResponseModel(response,rm, _settings,"",totalUrls-pendingUrls,totalUrls,(int)this.timer.Elapsed.TotalSeconds,top30Words);
+                RunDetail runDetails=new RunDetail("", totalUrls - pendingUrls, totalUrls, (int)this.timer.Elapsed.TotalSeconds, topXWords);
+                var responseModel = new ResponseModel(response, rm, _settings, runDetails);
                 ProcessResponse(responseModel);
             }
-            catch(Exception ex) {
-                Console.WriteLine(ex.InnerException.Message+" for " + rm.Url);
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.InnerException.Message + " for " + rm.Url);
                 HttpResponseMessage response = new HttpResponseMessage(0);
-                var responseModel = new ResponseModel(response,rm, _settings,ex.InnerException.Message,totalUrls-pendingUrls,pendingUrls,(int)this.timer.Elapsed.TotalSeconds,top30Words);
+                RunDetail runDetails= new RunDetail(ex.InnerException.Message, totalUrls - pendingUrls, pendingUrls, (int)this.timer.Elapsed.TotalSeconds, topXWords);
+                var responseModel = new ResponseModel(response, rm, _settings, runDetails);
                 ProcessResponse(responseModel);
             }
         }
+
+        private string ReadTopXWords()
+        {
+            var topXWords = "";
+            int howManyTopWordsToFetch= _settings.TopWordsCount;
+            if (howManyTopWordsToFetch<=0) return "";
+
+            lock (wordCounts)
+            {
+                var list = (from entry in wordCounts where entry.Key.ToString().Length > MINLETTERSINWORD orderby entry.Value descending select entry)
+                        .Take(howManyTopWordsToFetch)
+                        .ToList();
+                foreach (var ent in list)
+                {
+                    topXWords += Environment.NewLine + ent.Key + ":" + ent.Value.ToString();
+                }
+            }
+
+            return topXWords;
+        }
+
         public void ProcessResponse(IResponseModel responseModel)
         {
             WriteOutput(responseModel);
@@ -154,7 +229,7 @@ namespace LinkCrawler
 
         public void CrawlForLinksInResponse(IResponseModel responseModel)
         {
-            var linksFoundInMarkup = MarkupHelpers.GetValidUrlListFromMarkup(responseModel.Markup, ValidUrlParser, CheckImages);
+            var linksFoundInMarkup = MarkupHelpers.GetValidUrlListFromMarkup(responseModel.Markup, ValidUrlParser,_settings.CheckImages);
 
             lock(wordCounts)
             {
@@ -183,6 +258,7 @@ namespace LinkCrawler
 
             foreach (Match match in wordPattern.Matches(plainText))
             {
+                if (stopWordsList.ContainsKey(match.Value)) continue;
                 int currentCount=0;
                 wordCounts.TryGetValue(match.Value, out currentCount);
 
@@ -233,31 +309,24 @@ namespace LinkCrawler
                 List<string> messages = new List<string>();
                 messages.Add(""); // add blank line to differentiate summary from main output
 
-                messages.Add("Processing complete. Checked " + UrlList.Count() + " links in " + this.timer.ElapsedMilliseconds.ToString() + "ms");
-
-                messages.Add("");
-                messages.Add(" Status | # Links");
-                messages.Add(" -------+--------");
-
-                IEnumerable<IGrouping<int, string>> StatusSummary = UrlList.GroupBy(link => link.StatusCode, link => link.Address);
-                foreach(IGrouping<int,string> statusGroup in StatusSummary)
+                lock (UrlList)
                 {
-                    messages.Add(String.Format("   {0}  | {1,5}", statusGroup.Key, statusGroup.Count()));
-                }
+                    messages.Add("Processing complete. Checked " + UrlList.Count() + " links in " + this.timer.ElapsedMilliseconds.ToString() + "ms");
+                    messages.Add("");
+                    messages.Add(" Status | # Links");
+                    messages.Add(" -------+--------");
 
-                var top30Words="";
-                lock(wordCounts)
-                {
-                    var list=(from entry in wordCounts where entry.Key.ToString().Length>3 orderby entry.Value descending select entry)
-                            .Take(30)
-                            .ToList();
-                    foreach (var ent in list)
+                    IEnumerable<IGrouping<int, string>> StatusSummary = UrlList.GroupBy(link => link.StatusCode, link => link.Address);
+                    foreach(IGrouping<int,string> statusGroup in StatusSummary)
                     {
-                        top30Words+=Environment.NewLine+ent.Key+":"+ent.Value.ToString();
+                        messages.Add(String.Format("   {0}  | {1,5}", statusGroup.Key, statusGroup.Count()));
                     }
                 }
+
+                var topXWords=ReadTopXWords();
+                
                 messages.Add("--------Top words-----------");
-                messages.Add(top30Words);
+                messages.Add(topXWords);
                 
                 foreach (var output in Outputs)
                 {

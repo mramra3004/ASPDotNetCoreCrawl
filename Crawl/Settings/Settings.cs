@@ -1,6 +1,8 @@
 ﻿using LinkCrawler.Utils.Extensions;
 using Microsoft.Extensions.Configuration;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 
 namespace LinkCrawler.Utils.Settings
@@ -20,9 +22,6 @@ namespace LinkCrawler.Utils.Settings
            var builder = new ConfigurationBuilder()     
                 .AddJsonFile(settingAbsolutePath);   
             Configuration = builder.Build();  
-
-            //_baseUrl =Configuration[Constants.AppSettings.BaseUrl].Trim('/'); 
-            //not needed since this is passed from the browser
 
         }
 
@@ -56,6 +55,22 @@ namespace LinkCrawler.Utils.Settings
             get { return _baseUrl; } 
             set {_baseUrl=value;} 
             }
+
+        public int TopWordsCount => int.Parse(Configuration[Constants.AppSettings.TopWordsCount]);
+
+        public bool RemoveStopWords => Configuration[Constants.AppSettings.RemoveStopWords].ToBool();
+
+        public Dictionary<string, string> LanguageStopWords  
+        {
+            get 
+            {
+                var sect = Configuration.GetSection (Constants.AppSettings.LanguageStopWordsBySiteExtension).GetChildren()
+                        .Select(item => new KeyValuePair<string, string>(item.Key, item.Value))
+                        .ToDictionary(x => x.Key, x => x.Value);
+                return sect;
+            }
+
+        }
 
         public bool IsSuccess(HttpStatusCode statusCode)
         {

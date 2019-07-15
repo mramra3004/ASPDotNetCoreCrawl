@@ -11,7 +11,9 @@ namespace LinkCrawler.Models
         int StatusCodeNumber { get; }
         bool IsSuccess { get; }
         bool ShouldCrawl { get; }
-        string ExceptionText {get; }
+
+        RunDetail RunDetails {get; }
+
         string ToString();
     }
 }

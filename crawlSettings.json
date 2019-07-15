@@ -7,5 +7,13 @@
   "Csv.FilePath" :"./output.csv" ,
   "Csv.Overwrite" :"true" ,
   "Csv.Delimiter" :";" ,
-  "TimeMsBetweenRequests":"250"
+  "TimeMsBetweenRequests":"250",
+  "TopWordsCount":20,
+  "RemoveStopWords":"true",
+  "languageStopWords" : 
+      {
+        ".ro":"stopWordsRomanian.txt",
+        "*":"stopwordEnglish.txt"
+      }
+
 }

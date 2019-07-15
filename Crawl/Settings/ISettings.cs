@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using System.Collections.Generic;
+using System.Net;
 
 namespace LinkCrawler.Utils.Settings
 {
@@ -23,5 +24,11 @@ namespace LinkCrawler.Utils.Settings
         bool PrintSummary { get; }
 
         int TimeMsBetweenRequests {get; }
+
+        int TopWordsCount {get; }
+
+        bool RemoveStopWords {get; }
+
+        Dictionary<string,string> LanguageStopWords {get; }
     }
 }

@@ -19,6 +19,10 @@
             public const string OutputProviders = "outputProviders";
             public const string PrintSummary = "PrintSummary";
             public const string TimeMsBetweenRequests = "TimeMsBetweenRequests";
+
+            public const string TopWordsCount="TopWordsCount";
+            public const string RemoveStopWords="RemoveStopWords";
+            public const string LanguageStopWordsBySiteExtension="LanguageStopWords";
         }
 
         public static class Response
