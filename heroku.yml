@@ -1,3 +1,5 @@
 build:
   docker:
     web: Dockerfile
+run:
+  web: dotnet /app/out/ASPDotNetCore3Crawl.dll
