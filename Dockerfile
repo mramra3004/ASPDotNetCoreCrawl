@@ -52,7 +52,8 @@ RUN dotnet restore
 # Copy everything else and build
 COPY . ./
 RUN dotnet publish -c Release -o out
-
+EXPOSE 5000
+ENV ASPNETCORE_URLS=http://*:5000
 
 #ENV ASPNETCORE_URLS=http://+:5000
 
