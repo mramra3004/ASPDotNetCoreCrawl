@@ -11,11 +11,15 @@ namespace ASPDotNetCore3Crawl
         }
 
         public static IHostBuilder CreateHostBuilder(string[] args) =>
+	    string port=Environment.GetEnvironmentVariable("PORT");
+	    if (port == null || port="") port=5000;
+
+	    Console.WriteLine("Port:"+port);
             Host.CreateDefaultBuilder(args)
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseStartup<Startup>();
-			//.UseUrls("http://*:5000");
+                    webBuilder.UseStartup<Startup>()
+			.UseUrls("http://*:"+port+");
                 });
     }
 }
