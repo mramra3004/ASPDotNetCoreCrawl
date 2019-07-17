@@ -15,7 +15,7 @@ namespace ASPDotNetCore3Crawl
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
                     webBuilder.UseStartup<Startup>()
-			.UseUrls("http://*:80");
+			.UseUrls("http://*:5000");
                 });
     }
 }
