@@ -59,4 +59,6 @@ ENV ASPNETCORE_URLS=http://*:5000
 
 # Build runtime image
 
-ENTRYPOINT ["dotnet", "/app/out/ASPDotNetCore3Crawl.dll"]
+CMD ASPNETCORE_URLS=http://*:$PORT dotnet /app/out/ASPDotNetCore3Crawl.dll
+
+#ENTRYPOINT ["dotnet", "/app/out/ASPDotNetCore3Crawl.dll"]
