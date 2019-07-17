@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 
@@ -10,18 +11,18 @@ namespace ASPDotNetCore3Crawl
             CreateHostBuilder(args).Build().Run();
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args) =>
-	{
-	    string port=Environment.GetEnvironmentVariable("PORT");
-	    if (port == null || port="") port=5000;
+        public static IHostBuilder CreateHostBuilder(string[] args) 
+        {
+            string port=Environment.GetEnvironmentVariable("PORT");
+            if (port == null || port=="") port="5000";
 
-	    Console.WriteLine("Port:"+port);
-            Host.CreateDefaultBuilder(args)
-                .ConfigureWebHostDefaults(webBuilder =>
-                {
-                    webBuilder.UseStartup<Startup>()
-			.UseUrls("http://*:"+port+");
-                });
-	}
+            Console.WriteLine("Port:"+port);
+            return Host.CreateDefaultBuilder(args)
+                    .ConfigureWebHostDefaults(webBuilder =>
+                    {
+                        webBuilder.UseStartup<Startup>()
+                            .UseUrls("http://*:"+port);
+                    });
+        }
     }
 }
