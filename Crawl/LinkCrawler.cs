@@ -258,7 +258,7 @@ namespace LinkCrawler
 
             foreach (Match match in wordPattern.Matches(plainText))
             {
-                if (stopWordsList.ContainsKey(match.Value)) continue;
+                if (stopWordsList.ContainsKey(match.Value.ToLower())) continue;
                 int currentCount=0;
                 wordCounts.TryGetValue(match.Value, out currentCount);
 
