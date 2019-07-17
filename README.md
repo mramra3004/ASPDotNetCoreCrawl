@@ -45,3 +45,7 @@ Once the browser connects to the local webserver, the root URL should be input (
 A live list of crawled links is displayed and the ones broken are appended to a table in the browser (and also saved on the csv output file on the webserver location)
 
 The webserver used by dotnet is Kestrel. If you require setting it up on IIS or IIS Express look for the configuration steps on this on the web
+
+The app is also deployable via docker to heroku through the dockerfile
+Sample free deployment is at: (might be offline due to free heroku site policy)
+https://crawlwords.herokuapp.com
